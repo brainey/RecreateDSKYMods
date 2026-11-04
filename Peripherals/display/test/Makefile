@@ -1,0 +1,2 @@
+test_c_portion_of_self_test: test_c_portion_of_self_test.o
+	cc -o test_c_portion_of_self_test test_c_portion_of_self_test.o
