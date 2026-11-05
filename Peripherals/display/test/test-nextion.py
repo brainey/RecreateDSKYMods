@@ -100,18 +100,8 @@ def reset_nextion_display(port: serial.Serial):
     """
     Reset the Nextion display to its initial state.
     """
-    send_nextion_command(port, "comp_acty.pic=2")  # Replace with your desired initial page
 
-    # Clear all numeric register positions on the Nextion display
-    set_nextion_text(port, "PROG1", "")
-    set_nextion_text(port, "PROG2", "")
-    set_nextion_text(port, "VERB1", "")
-    set_nextion_text(port, "VERB2", "")
-    set_nextion_text(port, "NOUN1", "")
-    set_nextion_text(port, "NOUN2", "")
-    for register in range(1,4):
-        for digit in range(1, 7):
-            set_nextion_text(port, f"R{register}_{digit}", "")
+    send_nextion_command(port, "rest")  # Reset nextion display
 
     print("Nextion display reset to initial state.")
     time.sleep(1)  # Give the display some time to update
@@ -140,15 +130,15 @@ def execute_self_test():
             set_nextion_text(nextion, f"R{register}_{digit}", str(register + digit - 2))
 
     # toggle the '+' sign on the first digit of each register for visual confirmation
-    send_nextion_command(nextion, "comp_acty.pic=\"3\"")
+    send_nextion_command(nextion, "comp_acty.pic=3")
     for count in range(1,4):
         time.sleep(0.5)
-        send_nextion_command(nextion, "comp_acty.pic=\"2\"")
+        send_nextion_command(nextion, "comp_acty.pic=2")
         set_nextion_text(nextion, "R1_1", "-")
         set_nextion_text(nextion, "R2_1", "-")
         set_nextion_text(nextion, "R3_1", "-")
         time.sleep(0.5)
-        send_nextion_command(nextion, "comp_acty.pic=\"3\"")
+        send_nextion_command(nextion, "comp_acty.pic=3")
         set_nextion_text(nextion, "R1_1", "+")
         set_nextion_text(nextion, "R2_1", "+")
         set_nextion_text(nextion, "R3_1", "+")
@@ -171,7 +161,9 @@ def run_serial_terminal(nextion):
                 # Hardware self-test command
                 if user_input.lower() == "t":
                     # flush the terminal buffer
-                    sys.stdin.flush()
+                    sys.stdin.flush(
+
+                    )
                     print("Executing self-test...")
                     execute_self_test()
                     continue
@@ -209,28 +201,7 @@ if __name__ == "__main__":
     args = process_arguments()
     fd, old_terminal_settings = initialize_terminal()
     nextion = initialize_nextion(args)
-
-    # old_terminal_settings = initialize_terminal()
-    # nextion = initialize_nextion()
-
-    # send_nextion_command("page 0")  # Replace with your desired command
-    # send_nextion_command("t0.txt=\"Hello\"")  # Example of setting text on a Nextion component  
-    # send_nextion_command("t1.txt=\"World\"")  # Example of setting text on another Nextion component
-    # send_nextion_command("t2.txt=\"!\"")  # Example of setting text on a third Nextion component
-    # send_nextion_command("t3.txt=\"Goodbye\"")  # Example of setting text on a fourth Nextion component
-    # send_nextion_command("t4.txt=\"!\"")  # Example of setting text on a fifth Nextion component
-    # send_nextion_command("t5.txt=\"Hello again\"")  # Example of setting text on a sixth Nextion component
-    # send_nextion_command("t6.txt=\"Goodbye again\"")  # Example of setting text on a seventh Nextion component
-    # send_nextion_command("t7.txt=\"Final\"")  # Example of setting text on an eighth Nextion component
-    # send_nextion_command("t8.txt=\"Extra\"")  # Example of setting text on a ninth Nextion component
-    # send_nextion_command("t9.txt=\"More\"")  # Example of setting text on a tenth Nextion component
-    # send_nextion_command("t10.txt=\"Even More\"")  # Example of setting text on an eleventh Nextion component
-    # send_nextion_command("t11.txt=\"Last\"")  # Example of setting text on a twelfth Nextion component
-    # send_nextion_command("t12.txt=\"Extra\"")  # Example of setting text on a thirteenth Nextion component
-    # send_nextion_command("t13.txt=\"More\"")  # Example of setting text on a fourteenth Nextion component
-    # send_nextion_command("t14.txt=\"Even More\"")  # Example of setting text on a fifteenth Nextion component
-    # send_nextion_command("t15.txt=\"Final\"")  # Example of setting text on a sixteenth Nextion component   
-
     run_serial_terminal(nextion)
 
     restore_terminal()
+    
