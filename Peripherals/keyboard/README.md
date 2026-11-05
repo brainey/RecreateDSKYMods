@@ -11,6 +11,10 @@
 ## Pinout for the RP2040 / RP2350 Zero boards from Waveshare
 ![RP2350-Zero Pinout diagram](RP2350-Zero-pinout.png)
 
+## Code Plan
+
+- Use Circuitpython and its keypad library and USB-HID library to prov
+
 ## Breadboard for DSKY Keyboard
 
 ![Breadboard Wiring Diagram for DSKY Keyboard](Revised-Keyboard-Bread-Board-Wiring.png)

@@ -4,13 +4,14 @@
 
 from atexit import register
 import sys
+import argparse
 import select
 import tty
 import time
 import serial
 import termios
 
-NEXTION_SERIAL_PORT = '/dev/ttyACM0'  # Replace with your serial port
+DEFAULT_NEXTION_SERIAL_PORT = '/dev/ttyUSB0'  # Replace with your serial port
 
 # Communication constants for Nextion display
 NEXTION_BAUDRATE = 9600
@@ -24,7 +25,7 @@ NEXTION_BUFFER_SIZE = 40
 NEXTION_END_OF_COMMAND = b'\xFF\xFF\xFF'
 
 # Nextion serial port
-nextion_serial = None
+nextion = None
 
 old_terminal_settings = None
 
@@ -45,18 +46,33 @@ def restore_terminal():
         fd = 0  # File descriptor for standard input
         termios.tcsetattr(fd, termios.TCSADRAIN, old_terminal_settings)
 
-def initialize_nextion():
+
+parser = argparse.ArgumentParser(description="Test Nextion display via serial port.")
+parser.add_argument("port", help=f"Serial port name (default: {DEFAULT_NEXTION_SERIAL_PORT})", default=DEFAULT_NEXTION_SERIAL_PORT, nargs='?')
+parser.add_argument("--baud", type=int, default=NEXTION_BAUDRATE, help=f"Baud rate (default: {NEXTION_BAUDRATE})")
+
+def process_arguments():
+    args = parser.parse_args()
+    return args
+
+def initialize_nextion(args: argparse.Namespace):
     """
     Initialize the Nextion display.
     """
 
-    ser = serial.Serial(
-        port=NEXTION_SERIAL_PORT,  # Replace with your serial port
-        baudrate=NEXTION_BAUDRATE,
-        timeout=NEXTION_TIMEOUT
-    )
-    # send_nextion_command("comp_acty.pic=2")  # Replace with your desired initial page
-    # print("DSKY Display Controller Ready. Type 't' for self-test.")
+    print(f"Initializing Nextion display...{args.port}@{args.baud}")
+    try:
+        ser = serial.Serial(
+            port=args.port,
+            baudrate=args.baud,
+            timeout=NEXTION_TIMEOUT
+        )
+    except serial.SerialException as e:
+        print(f"Failed to initialize Nextion display: {e}")
+        sys.exit(1)
+
+    # send_nextion_command(ser,"comp_acty.pic=2")  # Replace with your desired initial page
+    print("DSKY Display Controller Ready. Type 't' for self-test.")
 
     return ser
 
@@ -65,22 +81,41 @@ def close_nextion(ser):
         ser.close()
         ser = None
 
-def send_nextion_command(command: str):
+def send_nextion_command(port: serial.Serial, command: str):
     """
     Send a command to the Nextion display.
     """
-    global nextion_serial
-
-    nextion_serial.write(command.encode('utf-8') + NEXTION_END_OF_COMMAND)
-    nextion_serial.flush()
+    port.write(command.encode('utf-8') + NEXTION_END_OF_COMMAND)
+    port.flush()
     time.sleep(NEXTION_COMMAND_DELAY)
 
-def set_nextion_text(component: str, text: str):
+def set_nextion_text(port: serial.Serial, component: str, text: str):
     """
     Set the text of a Nextion component.
     """
-    send_nextion_command(f"{component}.txt=\"{text}\"")
+    send_nextion_command(port, f"{component}.txt=\"{text}\"")
     print(f"Set text of component '{component}' to '{text}'")
+
+def reset_nextion_display(port: serial.Serial):
+    """
+    Reset the Nextion display to its initial state.
+    """
+    send_nextion_command(port, "comp_acty.pic=2")  # Replace with your desired initial page
+
+    # Clear all numeric register positions on the Nextion display
+    set_nextion_text(port, "PROG1", "")
+    set_nextion_text(port, "PROG2", "")
+    set_nextion_text(port, "VERB1", "")
+    set_nextion_text(port, "VERB2", "")
+    set_nextion_text(port, "NOUN1", "")
+    set_nextion_text(port, "NOUN2", "")
+    for register in range(1,4):
+        for digit in range(1, 7):
+            set_nextion_text(port, f"R{register}_{digit}", "")
+
+    print("Nextion display reset to initial state.")
+    time.sleep(1)  # Give the display some time to update
+    print("Nextion display update complete.")
 
 def execute_self_test():
     """
@@ -88,39 +123,44 @@ def execute_self_test():
     """
     print("Executing self-test on the Nextion display.")
 
+    reset_nextion_display(nextion)
+
     # Populate status fields on the Nextion display for self-test
-    set_nextion_text("PROG1", "0")
-    set_nextion_text("PROG2", "1")
-    set_nextion_text("VERB1", "2")
-    set_nextion_text("VERB2", "3")
-    set_nextion_text("NOUN1", "4")
-    set_nextion_text("NOUN2", "5")
-    set_nextion_text("R1_1", "+")
-    set_nextion_text("R2_1", "+")
-    set_nextion_text("R3_1", "+")
+    set_nextion_text(nextion, "PROG1", "0")
+    set_nextion_text(nextion, "PROG2", "1")
+    set_nextion_text(nextion, "VERB1", "2")
+    set_nextion_text(nextion, "VERB2", "3")
+    set_nextion_text(nextion, "NOUN1", "4")
+    set_nextion_text(nextion, "NOUN2", "5")
 
-    # Populate Numeric Register Positions on the Nextion display for self-test
-    for register in range(2,7):
-        set_nextion_text(f"R1_{register}", str(register - 1))
-        set_nextion_text(f"R2_{register}", str(register))
-        set_nextion_text(f"R3_{register}", str(register + 1))
-        print(f"Setting R1_{register} to {register - 1}")
-        print(f"Setting R2_{register} to {register}")
-        print(f"Setting R3_{register} to {register + 1}")
+    # Populate numeric register positions on the Nextion display for self-test
+    for register in range(1,4):
+        set_nextion_text(nextion, f"R{register}_1", "+")
+        for digit in range(2, 7):
+            set_nextion_text(nextion, f"R{register}_{digit}", str(register + digit - 2))
 
-    # Veriify COMP ACTY State
-    send_nextion_command("COMP_ACTY.pic=\"3\"")
-    time.sleep(1)
-    send_nextion_command("COMP_ACTY.pic=\"2\"")
+    # toggle the '+' sign on the first digit of each register for visual confirmation
+    send_nextion_command(nextion, "comp_acty.pic=\"3\"")
+    for count in range(1,4):
+        time.sleep(0.5)
+        send_nextion_command(nextion, "comp_acty.pic=\"2\"")
+        set_nextion_text(nextion, "R1_1", "-")
+        set_nextion_text(nextion, "R2_1", "-")
+        set_nextion_text(nextion, "R3_1", "-")
+        time.sleep(0.5)
+        send_nextion_command(nextion, "comp_acty.pic=\"3\"")
+        set_nextion_text(nextion, "R1_1", "+")
+        set_nextion_text(nextion, "R2_1", "+")
+        set_nextion_text(nextion, "R3_1", "+")
 
     # Indicate completion of self-test on the Nextion display
     print("Self-test completed.")
 
-def run_serial_terminal():
+def run_serial_terminal(nextion):
     """
     Run a simple serial terminal for the Nextion display.
     """
-    global nextion_serial
+
     try:
         while True:
             if select.select([sys.stdin], [], [], 0.1)[0]:
@@ -128,14 +168,22 @@ def run_serial_terminal():
                 if user_input.lower() == "x":
                     print("Exiting terminal...")
                     break
+                # Hardware self-test command
                 if user_input.lower() == "t":
                     # flush the terminal buffer
                     sys.stdin.flush()
                     print("Executing self-test...")
                     execute_self_test()
                     continue
+                # WHOAMI Handshake
                 if user_input.lower() == "w":
+                    # flush the terminal buffer
+                    sys.stdin.flush()
                     print("DSKY_DISPLAY")
+                    continue
+                # Reset command for the Nextion display
+                if user_input.lower() == "r":
+                    reset_nextion_display(nextion)
                     # flush the terminal buffer
                     sys.stdin.flush()
                     continue
@@ -143,24 +191,27 @@ def run_serial_terminal():
                     print("Available commands:")
                     print("  x         - Exit the terminal")
                     print("  t         - Execute self-test on the Nextion display")
-                    print("  w         - Display DSKY_DISPLAY")
+                    print("  r         - Reset the Nextion display")
+                    print("  w         - WHOAMI handshake with the Nextion display")
+
                     continue
-                nextion_serial.write(user_input.encode('utf-8') + NEXTION_END_OF_COMMAND)
-                nextion_serial.flush()
+                nextion.write(user_input.encode('utf-8') + NEXTION_END_OF_COMMAND)
+                nextion.flush()
     except KeyboardInterrupt:
         pass
     finally:
-        if nextion_serial is not None:
-            nextion_serial.close() 
-            nextion_serial = None
+        if nextion is not None:
+            nextion.close()
+            nextion = None
 
 # Example usage
 if __name__ == "__main__":
+    args = process_arguments()
     fd, old_terminal_settings = initialize_terminal()
-    nextion_serial = initialize_nextion()
+    nextion = initialize_nextion(args)
 
     # old_terminal_settings = initialize_terminal()
-    # nextion_serial = initialize_nextion()
+    # nextion = initialize_nextion()
 
     # send_nextion_command("page 0")  # Replace with your desired command
     # send_nextion_command("t0.txt=\"Hello\"")  # Example of setting text on a Nextion component  
@@ -180,6 +231,6 @@ if __name__ == "__main__":
     # send_nextion_command("t14.txt=\"Even More\"")  # Example of setting text on a fifteenth Nextion component
     # send_nextion_command("t15.txt=\"Final\"")  # Example of setting text on a sixteenth Nextion component   
 
-    run_serial_terminal()
+    run_serial_terminal(nextion)
 
     restore_terminal()
