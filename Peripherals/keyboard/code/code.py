@@ -31,7 +31,7 @@ KEY_MAP = [
     Keycode.K,       Keycode.THREE,     Keycode.TWO,        Keycode.ONE,        Keycode.ZERO,
     
     # Row 4 (GP12) -> Cols GP4, GP5, GP6, GP7, GP8
-    Keycode.ENTER,   Keycode.ESCAPE,    None,               Keycode.V,          Keycode.B,
+    Keycode.E,   Keycode.R,    None,               Keycode.V,          Keycode.N,
 ]
 
 print("Apollo DSKY 19-Key Matrix Scanner Initialized...")
