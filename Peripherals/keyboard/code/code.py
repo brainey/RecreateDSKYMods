@@ -13,7 +13,7 @@ kbd = Keyboard(usb_hid.devices)
 # Due to internal pull-up problem in the RP2350, will active low for the matrix scanning
 # Rows = 4 pins (GP9-GP12), Columns = 5 pins (GP4-GP8)
 matrix = keypad.KeyMatrix(
-    row_pins=(board.GP9, board.GP10, board.GP11, board.GP12),
+    row_pins=(board.GP14, board.GP15, board.GP26, board.GP27),
     column_pins=(board.GP4, board.GP5, board.GP6, board.GP7, board.GP8),
     columns_to_anodes=True  # Set to True if your diodes point from Col to Row
 )
