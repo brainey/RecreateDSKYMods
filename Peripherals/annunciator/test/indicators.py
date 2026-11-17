@@ -1,4 +1,9 @@
+# Constants and helper functions for the annunciator indicators
+import board
+import neopixel
 
+NUM_PIXELS = 28
+PIXEL_PIN = board.GP2
 
 DEEP_ORANGE = (255, 80, 0)
 WHITE = (255, 255, 255)
@@ -12,7 +17,6 @@ WARNING = (50, 0, 0)
 OFF = (0, 0, 0)
 ON = (50, 50, 50)
 GO = (0, 50, 0)
-
 
 
 # Mapping of indicators to pixel pairs for the display
@@ -68,7 +72,14 @@ labels = [
     "vel"           # 13
     ]
 
-def set_indicator(indicator_index, value):
+def init_pixels(pin):
+    global pixels
+    pixels = neopixel.NeoPixel(pin, NUM_PIXELS)
+    pixels.fill(OFF)
+    pixels.show()
+    return pixels
+
+def set_indicator(pixels, indicator_index, value):
     if 0 <= indicator_index < len(indicators):
         pixel_list = indicators[indicator_index]
         # Tuple is a list of pixel indexes
