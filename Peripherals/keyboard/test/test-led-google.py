@@ -56,6 +56,13 @@ class DskyLedDriver:
 
 if __name__ == "__main__":
     leds = DskyLedDriver()
-    leds.set_brightness(0.25, show=False)
-    leds.set_led_range(offset=0, count=5, color=(0, 255, 0), show=True)
+    brightness = 0.25
+    print(f"Initialized DSKY LED driver ...setting brightness to {brightness}")
+
+    leds.set_brightness(brightness, show=False)
+    offset = 0
+    count = 28
+    color = (0, 160, 0)
+    print(f"Setting LED range offset={offset} count={count} color={color}")
+    leds.set_led_range(offset=offset, count=count, color=color, show=True)
     leds.close()

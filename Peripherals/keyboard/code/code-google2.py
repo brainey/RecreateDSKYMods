@@ -6,6 +6,7 @@ import usb_hid
 from adafruit_hid.keyboard import Keyboard
 from adafruit_hid.keycode import Keycode
 
+print("Starting DSKY LED and Keypad Controller - Google Version 2")
 # --- 1. LED Configuration ---
 LED_PIN = board.GP2
 NUM_LEDS = 28
@@ -31,15 +32,21 @@ keys = keypad.KeyMatrix(row_pins=ROW_PINS, column_pins=COL_PINS, columns_to_anod
 
 # --- 3. USB HID Setup ---
 kbd = Keyboard(usb_hid.devices)
-led_endpoint = next(
-    (d for d in usb_hid.devices if d.usage_page == 0xFF00 and d.usage == 0x01),
-    None,
-)
+led_endpoint = None
+
+# Locate custom HID device
+for device in usb_hid.devices:
+    print(f"Found USB HID device: {device} usage_page={device.usage_page} usage={device.usage}")
+    if device.usage_page == 0xFF00 and device.usage == 0x01:
+        led_endpoint = device
+        print("Found custom HID device:", device)
+        break
 
 while True:
     # A. Process keypad events
     event = keys.events.get()
     if event:
+        print(f"Key event: {event}")
         keycode = KEYMAP[event.key_number]
         if keycode is not None:
             if event.pressed:
@@ -52,11 +59,13 @@ while True:
         packet = led_endpoint.get_last_received_report()
         if packet:
             cmd = packet[0]
-
+            print(f"Received cmd {cmd} packet: {packet}")
             if cmd == CMD_SET_BRIGHTNESS:
                 # Map 0..255 byte to 0.0..1.0 float
                 pixels.brightness = packet[1] / 255.0
-                if packet[2]:
+                commit = packet[2]
+                print(f"Set brightness to {pixels.brightness} commit={commit}")
+                if commit:
                     pixels.show()
 
             elif cmd == CMD_SET_RANGE:
@@ -73,6 +82,7 @@ while True:
                         pixels.show()
 
             elif cmd == CMD_SHOW:
+    
                 pixels.show()
 
     time.sleep(0.005)
