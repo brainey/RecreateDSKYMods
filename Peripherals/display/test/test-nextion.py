@@ -16,7 +16,7 @@ DEFAULT_NEXTION_SERIAL_PORT = '/dev/ttyUSB0'  # Replace with your serial port
 # Communication constants for Nextion display
 NEXTION_BAUDRATE = 9600
 NEXTION_TIMEOUT = 1
-NEXTION_COMMAND_DELAY = 0.1  # Delay between sending commands to the Nextion display
+NEXTION_COMMAND_DELAY = 0.05  # Delay between sending commands to the Nextion display
 
 # Protocol constants for Nextion display
 NEXTION_PAYLOAD_SIZE = 38
@@ -204,4 +204,3 @@ if __name__ == "__main__":
     run_serial_terminal(nextion)
 
     restore_terminal()
-    
